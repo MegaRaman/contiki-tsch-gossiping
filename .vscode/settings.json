@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "log.h": "c",
+        "tsch.h": "c",
+        "contiki.h": "c",
+        "radio.h": "c",
+        "tsch-adaptive-timesync.h": "c",
+        "netstack.h": "c",
+        "nullnet.h": "c",
+        "tsch-security.h": "c",
+        "tsch-log.h": "c",
+        "uip-debug.h": "c"
+    }
+}

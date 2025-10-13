@@ -1,0 +1,48 @@
+# TCL script for a node to move in an 8-meter radius circle
+# Simulation duration: 60 seconds
+
+# Defines the center of the circle (X_center, Y_center)
+set X_CENTER 100
+set Y_CENTER 100
+set RADIUS 8
+
+# Total simulation time and step size (must be an integer)
+set TOTAL_TIME 60
+set TIME_STEP 1
+
+# Calculate the speed needed to complete one circle in TOTAL_TIME
+# Circumference = 2 * pi * R = 2 * 3.14159 * 8 = 50.265 m
+# Speed = Circumference / Time = 50.265 / 60 = 0.83775 m/s
+set SPEED 0.83775
+
+# Calculate angular speed (angle change per second)
+# 360 degrees / 60 seconds = 6 degrees/sec
+set ANGLE_STEP 6
+
+# --- Start Movement Script ---
+
+# Node 1 is the mote that moves (assuming you assign the script to mote 1)
+# Start at (X_center + R, Y_center), which is 108, 100
+MOTE 1 RENAME MovingMote
+MOTE 1 START X [expr $X_CENTER + $RADIUS] Y $Y_CENTER Z 0
+
+# Initial angle
+set ANGLE 0
+
+# Loop through each second of the simulation
+for {set TIME 1} {$TIME <= $TOTAL_TIME} {incr TIME $TIME_STEP} {
+    # Calculate the new angle: current angle + step
+    set ANGLE [expr $ANGLE + $ANGLE_STEP]
+
+    # Convert angle to radians for Tcl's math functions
+    set ANGLE_RAD [expr $ANGLE * 3.14159 / 180]
+
+    # Calculate new X and Y coordinates (X = CenterX + R * cos(Angle), Y = CenterY + R * sin(Angle))
+    set NEW_X [expr $X_CENTER + $RADIUS * cos($ANGLE_RAD)]
+    set NEW_Y [expr $Y_CENTER + $RADIUS * sin($ANGLE_RAD)]
+
+    # SET POS: MOTE <ID> TIME <s.m> X <m> Y <m> Z <m> 
+    MOTE 1 TIME $TIME X $NEW_X Y $NEW_Y Z 0
+}
+
+# --- End Movement Script ---
