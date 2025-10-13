@@ -1,4 +1,4 @@
-CONTIKI_PROJECT = tsch-sharedstate.c
+CONTIKI_PROJECT = tsch-gossiping.c
 all: $(CONTIKI_PROJECT)
 
 CONTIKI = ../..
