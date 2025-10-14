@@ -1,0 +1,2 @@
+#define LOG_CONF_LEVEL_MAC                         LOG_LEVEL_NONE
+#define TSCH_SCHEDULE_CONF_WITH_6TISCH_MINIMAL 0
