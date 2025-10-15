@@ -41,6 +41,7 @@
 #include "net/nullnet/nullnet.h"
 #include "net/mac/tsch/tsch.h"
 #include "lib/random.h"
+#include "process.h"
 #include "sys/node-id.h"
 #include <string.h>
 
@@ -71,6 +72,17 @@ initialize_tsch_schedule()
 PROCESS(nullnet_example_process, "NullNet broadcast example");
 AUTOSTART_PROCESSES(&nullnet_example_process);
 
+int
+gchmac_callback_packet_ready(void)
+{
+    #if TSCH_WITH_LINK_SELECTOR
+    packetbuf_set_attr(PACKETBUF_ATTR_TSCH_SLOTFRAME, 0xffff);
+    packetbuf_set_attr(PACKETBUF_ATTR_TSCH_TIMESLOT, 0xffff);
+    packetbuf_set_attr(PACKETBUF_ATTR_TSCH_CHANNEL_OFFSET, 0xffff);
+    #endif
+    return 0;
+}
+
 /*---------------------------------------------------------------------------*/
 void input_callback(const void *data, uint16_t len,
   const linkaddr_t *src, const linkaddr_t *dest)
@@ -85,6 +97,41 @@ void input_callback(const void *data, uint16_t len,
     LOG_INFO_("\n");
   }
 }
+
+void input_callback_scan(const void *data, uint16_t len,
+  const linkaddr_t *src, const linkaddr_t *dest) {
+
+}
+
+
+// static int gchmac_status;
+// enum {
+//     GCHMAC_STATUS_SCANNING = 0,
+//     // ...
+// };
+
+// PROCESS_THREAD(gchmac_scheduler_proc, ev, data) {
+//     PROCESS_BEGIN();
+//     gchmac_status = GCHMAC_STATUS_SCANNING;
+
+//     static struct etimer scan_timer;
+
+//     nullnet_set_input_callback(input_callback_scan);
+
+//     etimer_set(&scan_timer, GCHMAC_HEARTBEAT_INTERVAL * 2);
+//     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&scan_timer));
+
+//     // TODO: build schedule
+
+//     nullnet_set_input_callback(input_callback);
+
+//     // TODO: intermittently broadcast heartbeat in shared slot.
+
+
+
+//     PROCESS_END();
+// }
+
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(nullnet_example_process, ev, data)
 {
