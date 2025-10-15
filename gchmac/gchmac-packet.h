@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <string.h>
 
-int parse_gchmac_packet(const uint8_t* bytes, uint16_t len, gchmac_packet_t* packet) {
+int parse_gchmac_packet(const uint8_t* bytes, uint16_t len, gchmac_packet_old_t* packet) {
     print_bytes_hex(bytes, len);
     unsigned int cursor = 0;
 
@@ -47,7 +47,7 @@ int parse_gchmac_packet(const uint8_t* bytes, uint16_t len, gchmac_packet_t* pac
     return 1;
 }
 
-int create_gchmac_packet(uint8_t* buf, uint16_t* len, gchmac_packet_t* packet) {
+int create_gchmac_packet(uint8_t* buf, uint16_t* len, gchmac_packet_old_t* packet) {
 
     if (packet->hdr.colmap_len > GCHMAC_COLMAP_MAX_LEN) {
         LOG_ERR("create_gchmac_packet: Collision map length exceeds maximum\n");

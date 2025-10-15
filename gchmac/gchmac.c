@@ -52,6 +52,9 @@
 static linkaddr_t coordinator_addr =  {{ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }};
 #endif
 
+static gchmac_nbr_t slotframe_neighbors[GCHMAC_SLOTFRAME_TIMESLOTS - 1];
+static uint16_t combined_colmap;
+
 static void
 initialize_tsch_schedule()
 {
@@ -76,8 +79,8 @@ int
 gchmac_callback_packet_ready(void)
 {
     #if TSCH_WITH_LINK_SELECTOR
-    packetbuf_set_attr(PACKETBUF_ATTR_TSCH_SLOTFRAME, 0xffff);
-    packetbuf_set_attr(PACKETBUF_ATTR_TSCH_TIMESLOT, 0xffff);
+    packetbuf_set_attr(PACKETBUF_ATTR_TSCH_SLOTFRAME, 1);
+    packetbuf_set_attr(PACKETBUF_ATTR_TSCH_TIMESLOT, 0);
     packetbuf_set_attr(PACKETBUF_ATTR_TSCH_CHANNEL_OFFSET, 0xffff);
     #endif
     return 0;
@@ -87,7 +90,7 @@ gchmac_callback_packet_ready(void)
 void input_callback(const void *data, uint16_t len,
   const linkaddr_t *src, const linkaddr_t *dest)
 {
-  static gchmac_packet_t input_packet;
+  static gchmac_packet_old_t input_packet;
   if (parse_gchmac_packet((const uint8_t*)data, len, &input_packet) == 0) return;
   if(input_packet.data_len == sizeof(unsigned)) {
     unsigned count;
@@ -137,8 +140,8 @@ PROCESS_THREAD(nullnet_example_process, ev, data)
 {
   static struct etimer periodic_timer;
   static unsigned count = 0;
-  static gchmac_packet_t out_packet;
-  static uint8_t packet_buf[sizeof(gchmac_packet_t)];
+  static gchmac_packet_old_t out_packet;
+  static uint8_t packet_buf[sizeof(gchmac_packet_old_t)];
 
   PROCESS_BEGIN();
 
