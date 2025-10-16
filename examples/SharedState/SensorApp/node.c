@@ -9,6 +9,8 @@
 #define LOG_MODULE "SENSOR"
 #define LOG_LEVEL LOG_LEVEL_INFO
 
+#define PERCENTAGE_CHANCE_BROADCAST 10
+
 PROCESS(sensor_process, "Sensor process");
 AUTOSTART_PROCESSES(&sensor_process);
 
@@ -19,32 +21,38 @@ PROCESS_THREAD(sensor_process, ev, data)
 
     PROCESS_BEGIN();
 
+    sharedstate_init();
     etimer_set(&periodic_timer, CLOCK_SECOND * 10);
 
     while (1)
     {
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
 
-        //---------- update own sensor value
-        sens_val += (rand() % 3) - 1;
-        char value_str[8];
-        char key_str[8];
-        sprintf(key_str, "node%d", linkaddr_node_addr.u8[1]);
-        sprintf(value_str, "%d", sens_val);
-        LOG_INFO("Sensor SS put: %d\n", sens_val);
-        sharedState_put(key_str, value_str);
+        int rand_num = rand() % PERCENTAGE_CHANCE_BROADCAST;
 
-        //---------- periodic shared state maintenance
-        sharedState_periodic();
+        if (!rand_num)
+        {
+            //---------- update own sensor value
+            sens_val += (rand() % 3) - 1;
+            char value_str[8];
+            char key_str[8];
+            sprintf(key_str, "node%d", linkaddr_node_addr.u8[1]);
+            sprintf(value_str, "%d", sens_val);
+            LOG_INFO("Sensor SS put: %d\n", sens_val);
+            sharedstate_put(key_str, value_str);
 
-        //---------- read another node sensor value
-        char key_get[8];
-        sprintf(key_get, "node%d", (linkaddr_node_addr.u8[1] + 1) % 4);
-        const char *val = sharedState_get(key_str);
-        if (val)
-            LOG_INFO("Sensor value: %s\n", val);
+            //---------- periodic shared state maintenance
+            sharedstate_periodic();
 
-        etimer_reset(&periodic_timer);
+            //---------- read another node sensor value
+            char key_get[8];
+            sprintf(key_get, "node%d", (linkaddr_node_addr.u8[1] + 1) % 4);
+            const char *val = sharedstate_get(key_get);
+            if (val)
+                LOG_INFO("Sensor value: %s\n", val);
+
+            etimer_reset(&periodic_timer);
+        }
     }
 
     PROCESS_END();
