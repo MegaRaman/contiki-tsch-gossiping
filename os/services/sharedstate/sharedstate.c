@@ -67,8 +67,6 @@ static void recv_callback(const void *data,
     LOG_INFO("SharedState recv callback\n");
     if (datalen == sizeof(SharedState_item_t))
     {
-        // for (int i = 0; i < LINKADDR_SIZE; i++)
-        //     LOG_INFO_("%02x", sender_addr->u8[i]);
         LOG_INFO_("Received data from id: '%lu' value: '%s'\n",
                   ((SharedState_item_t *)data)->id,
                   ((SharedState_item_t *)data)->data);
@@ -106,8 +104,6 @@ void sharedstate_periodic()
     SharedState_item_t *item = &cache[r];
     LOG_INFO("Periodic broadcast of id: '%lu' value: '%s'\n",
              item->id, item->data);
-    nullnet_buf = (uint8_t *)item;
-    nullnet_len = sizeof(SharedState_item_t);
     NETSTACK_NETWORK.output(NULL);
 }
 
