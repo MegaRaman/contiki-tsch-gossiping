@@ -1,5 +1,5 @@
-#ifndef __SHAREDSTATE_H__
-#define __SHAREDSTATE_H__
+#ifndef PROJECT_CONF_H_
+#define PROJECT_CONF_H_
 
 #define PKT_SIZE_BYTES 32
 // pkt id format: byte 0 - node_id, byte 1 - msg_id
@@ -11,7 +11,13 @@
 /* input buffer size is at most as big as the cache */
 #define INPUT_BUF_SIZE 20
 #define CACHE_SIZE 32
-#define OUTPUT_BUF_SIZE 5
+#define OUTPUT_BUF_SIZE 2
+
+#define NETSTACK_CONF_NETWORK nullnet_driver
+#define NETSTACK_CONF_WITH_NULLNET 1
+
+#define LOG_CONF_LEVEL_NULLNET LOG_LEVEL_INFO
+#define LOG_CONF_LEVEL_MAC LOG_LEVEL_INFO
 
 #include <stdint.h>
 
@@ -51,4 +57,4 @@ void sharedstate_app_send(sharedstate_t *sharedstate, void *data, uint16_t len);
 inline int get_pkt_id(uint8_t pkt_id[PKT_ID_SIZE_BYTES]);
 // inline int get_pkt_tstamp(uint8_t tstamp[TIMESTAMP_SIZE_BYTES]);
 
-#endif // __SHAREDSTATE_H__
+#endif /* PROJECT_CONF_H_ */
