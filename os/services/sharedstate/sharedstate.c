@@ -37,24 +37,24 @@ static int find_in_cache(uint32_t id)
 
 static void cache_insert(SharedState_item_t *item)
 {
-    LOG_INFO("Cache insert req id: '%ui' value: '%s'\n", item->id, item->data);
+    LOG_INFO("Cache insert req id: '%lu' value: '%s'\n", item->id, item->data);
     int i = find_in_cache(item->id);
 
     if (i < 0 && cache_count < SHAREDSTATE_MAX_ITEMS)
     {
-        LOG_INFO("Cache inserted id: '%ui' in position: '%d'\n", item->id, cache_count);
+        LOG_INFO("Cache inserted id: '%lu' in position: '%d'\n", item->id, cache_count);
         cache[cache_count++] = *item;
         return;
     }
     else if (i >= 0 && item->ts > cache[i].ts)
     {
-        LOG_INFO("Cache updated id: '%ui' in position: '%d'\n", item->id, i);
+        LOG_INFO("Cache updated id: '%lu' in position: '%d'\n", item->id, i);
         cache[i] = *item;
         return;
     }
     else
     {
-        LOG_INFO("Cache full, cannot insert id: '%ui'\n", item->id);
+        LOG_INFO("Cache full, cannot insert id: '%lu'\n", item->id);
         return;
     }
 }
@@ -69,7 +69,7 @@ static void recv_callback(const void *data,
     {
         // for (int i = 0; i < LINKADDR_SIZE; i++)
         //     LOG_INFO_("%02x", sender_addr->u8[i]);
-        LOG_INFO_("Received data from id: '%ui' value: '%s'\n",
+        LOG_INFO_("Received data from id: '%lu' value: '%s'\n",
                   ((SharedState_item_t *)data)->id,
                   ((SharedState_item_t *)data)->data);
         SharedState_item_t item;
@@ -97,11 +97,14 @@ void sharedstate_periodic()
 {
     LOG_INFO("SharedState periodic\n");
     if (cache_count == 0)
+    {
+        LOG_INFO("No items in cache to broadcast\n");
         return;
+    }
 
     int r = rand() % cache_count;
     SharedState_item_t *item = &cache[r];
-    LOG_INFO("Periodic broadcast of id: '%ui' value: '%s'\n",
+    LOG_INFO("Periodic broadcast of id: '%lu' value: '%s'\n",
              item->id, item->data);
     nullnet_buf = (uint8_t *)item;
     nullnet_len = sizeof(SharedState_item_t);

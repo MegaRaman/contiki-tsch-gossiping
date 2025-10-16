@@ -9,7 +9,7 @@
 #define LOG_MODULE "SENSOR"
 #define LOG_LEVEL LOG_LEVEL_INFO
 
-#define PERCENTAGE_CHANCE_BROADCAST 10
+#define PERCENTAGE_CHANCE_BROADCAST 35
 
 PROCESS(sensor_process, "Sensor process");
 AUTOSTART_PROCESSES(&sensor_process);
@@ -50,9 +50,9 @@ PROCESS_THREAD(sensor_process, ev, data)
             const char *val = sharedstate_get(key_get);
             if (val)
                 LOG_INFO("Sensor value: %s\n", val);
-
-            etimer_reset(&periodic_timer);
         }
+
+        etimer_reset(&periodic_timer);
     }
 
     PROCESS_END();
