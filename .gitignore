@@ -1,4 +1,5 @@
 compile_commands.json
 .zed
 
-/gchmac/build
+**/build
+**/.cache/clangd
