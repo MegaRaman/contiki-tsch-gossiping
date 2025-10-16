@@ -1,20 +1,21 @@
 #ifndef SHAREDSTATE_H_
 #define SHAREDSTATE_H_
 
-#define SHAREDSTATE_MAX_ITEM = 32
-#define SHAREDSTATE_KEY_MAX_LEN = 16
+#define SHAREDSTATE_MAX_ITEMS 32
+#define SHAREDSTATE_MAX_DATA_LEN 16
+#define NETSTACK_CONF_NETWORK nullnet_driver
 
 typedef struct
 {
     uint32_t id;
     uint32_t ts;
     uint8_t len;
-    uint8_t data[16];
+    uint8_t data[SHAREDSTATE_MAX_DATA_LEN];
 } SharedState_item_t;
 
-void sharedState_init();
-void sharedState_periodic();
-void sharedState_put(const char *key, const char *value);
-const char *sharedState_get(const char *key);
+void sharedstate_init();
+void sharedstate_periodic();
+void sharedstate_put(const char *key, const char *value);
+const char *sharedstate_get(const char *key);
 
 #endif /* SHAREDSTATE_H_ */
