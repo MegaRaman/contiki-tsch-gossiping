@@ -1,5 +1,5 @@
-#ifndef PROJECT_CONF_H_
-#define PROJECT_CONF_H_
+#ifndef SHAREDSTATE_H_
+#define SHAREDSTATE_H_
 
 #define PKT_SIZE_BYTES 32
 // pkt id format: byte 0 - node_id, byte 1 - msg_id

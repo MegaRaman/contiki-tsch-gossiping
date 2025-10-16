@@ -1,4 +1,5 @@
 #include "contiki.h"
+#include "sharedstate.h"
 
 #include <string.h>
 #include <stdbool.h>
@@ -6,16 +7,16 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "sharedstate.h"
-
 #include "net/netstack.h"
 #include "net/nullnet/nullnet.h"
 #include "sys/log.h"
 #include "lib/random.h"
+#include "sys/etimer.h"
 
 #define LOG_MODULE "Sharedstate"
 #define LOG_LEVEL LOG_LEVEL_INFO // LOG info type
 
+static sharedstate_t sharedstate;
 uint8_t msg_id = 0;
 
 inline int get_pkt_id(uint8_t pkt_id[PKT_ID_SIZE_BYTES])
@@ -67,8 +68,6 @@ void cache_remove(sharedstate_t *sharedstate, int cache_index)
 	sharedstate->cache_entries_nr--;
 }
 
-/* cache can be accessed concurrently by an app and by an input buffer during an
- * active thread */
 bool cache_add(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 {
 	if (sharedstate->cache_entries_nr == CACHE_SIZE)
@@ -113,16 +112,17 @@ void cache_get_random_entries(sharedstate_t *sharedstate, uint8_t entry_nr,
 	memcpy(entries, occupied_indices, entry_nr);
 }
 
-static void sharedstate_callback(const void *data,
-								 uint16_t datalen,
-								 const linkaddr_t *src,
-								 const linkaddr_t *dest)
+static void recv_callback(const void *data,
+						  uint16_t datalen,
+						  const linkaddr_t *src,
+						  const linkaddr_t *dest)
 {
 	if (datalen == sizeof(sharedstate_pkt_t))
 	{
 		LOG_INFO("received id: %u data: %u\n",
 				 ((sharedstate_pkt_t *)data)->pkt_id[1],
 				 ((sharedstate_pkt_t *)data)->data[0]);
+		sharedstate_rx(&sharedstate, (sharedstate_pkt_t *)data);
 	}
 	else
 	{
@@ -149,10 +149,10 @@ void init_sharedstate(sharedstate_t *sharedstate, int node_id)
 	}
 	random_init(0);
 
-	nullnet_set_input_callback(sharedstate_callback);
+	nullnet_set_input_callback(recv_callback);
 	NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, 18);
-	// nullnet_buf = (uint8_t *)&(sharedstate->output_buf[0]);
-	nullnet_buf = (uint8_t *)&(sharedstate->local_entry);
+	nullnet_buf = (uint8_t *)&(sharedstate->output_buf[0]);
+	// nullnet_buf = (uint8_t *)&(sharedstate->local_entry);
 	nullnet_len = sizeof(sharedstate_pkt_t);
 	// nullnet_len = sizeof(sharedstate_pkt_t) * OUTPUT_BUF_SIZE;
 	LOG_INFO("SharedState initialized\n");
@@ -162,12 +162,18 @@ void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 {
 	if (sharedstate->msgs_rx_nr == INPUT_BUF_SIZE)
 	{
+		LOG_INFO("Input buffer full, dropping pkt id: %u data: %u\n",
+				 pkt->pkt_id[1],
+				 pkt->data[0]);
 		sharedstate->msgs_dropped_nr++;
 		return;
 	}
 	int contains_i = inputbuf_contains(sharedstate, pkt);
 	if (contains_i >= 0)
 	{
+		LOG_INFO("Input buffer already contains pkt id: %u data: %u\n",
+				 pkt->pkt_id[1],
+				 pkt->data[0]);
 		sharedstate_pkt_t inbuf_pkt = sharedstate->input_buf[contains_i];
 		if (inbuf_pkt.tstamp < pkt->tstamp)
 		{
@@ -176,6 +182,9 @@ void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 	}
 	else
 	{
+		LOG_INFO("Adding pkt id: %u data: %u to input buffer\n",
+				 pkt->pkt_id[1],
+				 pkt->data[0]);
 		sharedstate->input_buf[sharedstate->msgs_rx_nr] = *pkt;
 		sharedstate->msgs_rx_nr++;
 	}
@@ -292,7 +301,6 @@ PROCESS_THREAD(sharedstate_process, ev, data)
 {
 	static struct etimer periodic_timer;
 	static int sens_val = 25;
-	static sharedstate_t sharedstate;
 
 	PROCESS_BEGIN();
 
@@ -308,8 +316,7 @@ PROCESS_THREAD(sharedstate_process, ev, data)
 		LOG_INFO("Sensor SS put: %d\n", sens_val);
 
 		sharedstate_app_send(&sharedstate, &sens_val, sizeof(sens_val));
-		NETSTACK_NETWORK.output(NULL);
-		// sharedstate_tx(&sharedstate);
+		sharedstate_tx(&sharedstate);
 
 		etimer_reset(&periodic_timer);
 	}
