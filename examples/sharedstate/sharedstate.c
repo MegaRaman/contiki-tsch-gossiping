@@ -111,16 +111,18 @@ static void recv_callback(const void *data,
 						  const linkaddr_t *src,
 						  const linkaddr_t *dest)
 {
-	if (datalen == sizeof(sharedstate_pkt_t))
+	if (datalen == sizeof(sharedstate_pkt_t) * OUTPUT_BUF_SIZE)
 	{
-		LOG_INFO("received id: %u data: %u\n",
-				 ((sharedstate_pkt_t *)data)->pkt_id[1],
-				 ((sharedstate_pkt_t *)data)->data[0]);
-		sharedstate_rx(&sharedstate, (sharedstate_pkt_t *)data);
+		// LOG_INFO("received id: %u data: %u\n",
+		// 		 ((sharedstate_pkt_t *)data)->pkt_id[1],
+		// 		 ((sharedstate_pkt_t *)data)->data[0]);
+		for (int i = 0; i < OUTPUT_BUF_SIZE; i++) {
+			sharedstate_rx(&sharedstate, ((sharedstate_pkt_t*)data) + 1);
+		}
 	}
 	else
 	{
-		LOG_WARN("Received invalid data size: '%d'\n", datalen);
+		// LOG_WARN("Received invalid data size: '%d'\n", datalen);
 		return;
 	}
 }
@@ -144,8 +146,9 @@ void init_sharedstate(sharedstate_t *sharedstate, int node_id)
 
 	nullnet_set_input_callback(recv_callback);
 	NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, 18);
-	nullnet_buf = (uint8_t *)&(sharedstate->output_buf[0]);
-	nullnet_len = sizeof(sharedstate_pkt_t);
+	// TODO: transmit the whole output buffer
+	nullnet_buf = (uint8_t *)&(sharedstate->output_buf);
+	nullnet_len = sizeof(sharedstate_pkt_t) * OUTPUT_BUF_SIZE;
 	// nullnet_len = sizeof(sharedstate_pkt_t) * OUTPUT_BUF_SIZE;
 	LOG_INFO("SharedState initialized\n");
 }
