@@ -117,12 +117,12 @@ static void recv_callback(const void *data,
 		// 		 ((sharedstate_pkt_t *)data)->pkt_id[1],
 		// 		 ((sharedstate_pkt_t *)data)->data[0]);
 		for (int i = 0; i < OUTPUT_BUF_SIZE; i++) {
-			sharedstate_rx(&sharedstate, ((sharedstate_pkt_t*)data) + 1);
+			sharedstate_rx(&sharedstate, ((sharedstate_pkt_t*)data) + i);
 		}
 	}
 	else
 	{
-		// LOG_WARN("Received invalid data size: '%d'\n", datalen);
+		LOG_WARN("Received invalid data size: '%d'\n", datalen);
 		return;
 	}
 }
@@ -157,18 +157,18 @@ void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 {
 	if (sharedstate->input_buf_cnt == INPUT_BUF_SIZE)
 	{
-		LOG_INFO("Input buffer full, dropping pkt id: %u data: %u\n",
+		LOG_INFO("Input buffer full, dropping pkt id: %u data: %s\n",
 				 pkt->pkt_id[1],
-				 pkt->data[0]);
+				 pkt->data);
 		sharedstate->msgs_dropped_nr++;
 		return;
 	}
 	int contains_i = inputbuf_contains(sharedstate, pkt);
 	if (contains_i >= 0)
 	{
-		LOG_INFO("Input buffer already contains pkt id: %u data: %u\n",
+		LOG_INFO("Input buffer already contains pkt id: %u data: %s\n",
 				 pkt->pkt_id[1],
-				 pkt->data[0]);
+				 pkt->data);
 		sharedstate_pkt_t inbuf_pkt = sharedstate->input_buf[contains_i];
 		if (inbuf_pkt.tstamp < pkt->tstamp)
 		{
@@ -177,9 +177,9 @@ void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 	}
 	else
 	{
-		LOG_INFO("Adding pkt id: %u data: %u to input buffer\n",
+		LOG_INFO("Adding pkt id: %u data: %s to input buffer\n",
 				 pkt->pkt_id[1],
-				 pkt->data[0]);
+				 pkt->data);
 		sharedstate->input_buf[sharedstate->input_buf_cnt] = *pkt;
 		sharedstate->input_buf_cnt++;
 	}
@@ -252,9 +252,9 @@ void sharedstate_tx(sharedstate_t *sharedstate)
 		cache_remove(sharedstate, entries[i]);
 	}
 
-	LOG_INFO("Broadcasting id: %u data: %u\n",
+	LOG_INFO("Broadcasting id: %u data: %s\n",
 			 sharedstate->output_buf[0].pkt_id[1],
-			 sharedstate->output_buf[0].data[0]);
+			 sharedstate->output_buf[0].data);
 
 	sharedstate->msgs_dropped_nr = 0;
 	sharedstate->overload_cumulative = 0;
@@ -268,7 +268,7 @@ AUTOSTART_PROCESSES(&sharedstate_process);
 PROCESS_THREAD(sharedstate_process, ev, data)
 {
 	static struct etimer periodic_timer;
-	static int sens_val = 25;
+	static char sens_val[PKT_DATA_SIZE_BYTES];
 
 	PROCESS_BEGIN();
 
@@ -280,10 +280,11 @@ PROCESS_THREAD(sharedstate_process, ev, data)
 	{
 		PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
 
-		sens_val += (rand() % 3) - 1;
+		sprintf(sens_val, "%d\n", 25 + (rand() % 3) - 1);
 		LOG_INFO("Sensor SS put: %d\n", sens_val);
 
-		sharedstate_app_send(&sharedstate, &sens_val, sizeof(sens_val));
+		// account for \0
+		sharedstate_app_send(&sharedstate, &sens_val, strlen(sens_val) + 1);
 		sharedstate_tx(&sharedstate);
 
 		etimer_reset(&periodic_timer);
