@@ -249,7 +249,7 @@ void sharedstate_tx(sharedstate_t *sharedstate)
 	for (int i = 0; i < OUTPUT_BUF_SIZE; i++)
 	{
 		sharedstate->output_buf[i] = sharedstate->cache[entries[i]];
-		cache_remove(sharedstate, i);
+		cache_remove(sharedstate, entries[i]);
 	}
 
 	LOG_INFO("Broadcasting id: %u data: %u\n",
