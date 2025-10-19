@@ -50,7 +50,7 @@ typedef struct
 void init_sharedstate(sharedstate_t *sharedstate, int node_id);
 void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt);
 void sharedstate_tx(sharedstate_t *sharedstate);
-void sharedstate_app_send(sharedstate_t *sharedstate, void *data, uint16_t len);
+void sharedstate_app_send(sharedstate_t *sharedstate, void *data, uint16_t len, uint8_t rx_id);
 
 static inline int get_pkt_id(uint8_t pkt_id[PKT_ID_SIZE_BYTES])
 {

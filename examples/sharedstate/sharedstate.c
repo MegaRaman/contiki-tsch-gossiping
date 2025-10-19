@@ -16,6 +16,8 @@
 #define LOG_MODULE "Sharedstate"
 #define LOG_LEVEL LOG_LEVEL_INFO // LOG info type
 
+#define NODES_CNT	6
+
 static sharedstate_t sharedstate;
 uint8_t msg_id = 0;
 
@@ -158,6 +160,9 @@ void init_sharedstate(sharedstate_t *sharedstate, int node_id)
 
 void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 {
+	if (pkt->pkt_id[0] == sharedstate->node_id) {
+		LOG_INFO("shst: rx %d %d\n", sharedstate->node_id, pkt->pkt_id[1]);
+	}
 	if (sharedstate->input_buf_cnt == INPUT_BUF_SIZE)
 	{
 		LOG_INFO("Input buffer full, dropping pkt id: %u data: %s\n",
@@ -188,7 +193,7 @@ void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 	}
 }
 
-void sharedstate_app_send(sharedstate_t *sharedstate, void *data, uint16_t len)
+void sharedstate_app_send(sharedstate_t *sharedstate, void *data, uint16_t len, uint8_t rx_id)
 {
 	if (len > PKT_DATA_SIZE_BYTES)
 	{
@@ -198,7 +203,7 @@ void sharedstate_app_send(sharedstate_t *sharedstate, void *data, uint16_t len)
 
 	sharedstate_pkt_t pkt;
 	pkt.tstamp = RTIMER_NOW();
-	pkt.pkt_id[0] = sharedstate->node_id;
+	pkt.pkt_id[0] = rx_id;
 	pkt.pkt_id[1] = msg_id++;
 	pkt.overload = 0;
 	memcpy(pkt.data, data, len);
@@ -287,8 +292,13 @@ PROCESS_THREAD(sharedstate_process, ev, data)
 		sprintf(sens_val, "%d\n", 25 + (rand() % 3) - 1);
 		LOG_INFO("Sensor SS put: %s\n", sens_val);
 
+		uint8_t rx_id = (random_rand () % NODES_CNT) + 1;
+		while (rx_id == sharedstate.node_id) {
+			rx_id = (random_rand () % NODES_CNT) + 1;
+		}
+		LOG_INFO("shst: tx %d %d\n", rx_id, msg_id);
 		// account for \0
-		sharedstate_app_send(&sharedstate, &sens_val, strlen(sens_val) + 1);
+		sharedstate_app_send(&sharedstate, &sens_val, strlen(sens_val) + 1, rx_id);
 		sharedstate_tx(&sharedstate);
 
 		etimer_reset(&periodic_timer);
