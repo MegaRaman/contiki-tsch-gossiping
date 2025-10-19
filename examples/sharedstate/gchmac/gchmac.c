@@ -46,9 +46,10 @@
 #include "packetbuf.h"
 #include "process.h"
 
-#include "tsch-schedule.h"
+#include "tsch/tsch.h"
 #include "watchdog.h"
 #include <stdint.h>
+#include <string.h>
 
 #include "sys/log.h"
 #define LOG_MODULE "GCH-MAC"
@@ -65,7 +66,7 @@
 static linkaddr_t coordinator_addr =  {{ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }};
 #endif
 
-static gchmac_nbr_t neighbors[GCHMAC_MAX_NEIGHBORS] = { 0 };
+static gchmac_nbr_t neighbors[GCHMAC_MAX_NEIGHBORS];
 
 static colmap_t combined_nbrmap = 0;
 static colmap_t combined_nbrmap_buf = 0;
@@ -151,12 +152,12 @@ void choose_tx_slot() {
     tsch_schedule_add_link(sl, LINK_OPTION_TX, LINK_TYPE_NORMAL, &tsch_broadcast_address, tx_timeslot, 0, 1);
 
     // Add TX link
-    tsch_schedule_add_link(sl, 
+    tsch_schedule_add_link(sl,
         LINK_OPTION_TX,  // TX only
-        LINK_TYPE_NORMAL, 
-        &tsch_broadcast_address, 
+        LINK_TYPE_NORMAL,
+        &tsch_broadcast_address,
         tx_timeslot, 0, 1);
-    
+
     // Also configure receive slot when choosing TX slot
     configure_receive_slot();
 }
@@ -166,30 +167,30 @@ static void configure_receive_slot(void)
     if (rx_slot_configured && rx_timeslot != 0) {
         return; // Already configured
     }
-    
+
     // Find an available slot for receiving (different from TX slot)
     uint16_t new_rx_slot = 1 + random_rand() % (GCHMAC_SLOTFRAME_TIMESLOTS - 1);
-    
+
     // Make sure RX slot is different from TX slot
     while (new_rx_slot == tx_timeslot) {
         new_rx_slot = 1 + (new_rx_slot + 1) % (GCHMAC_SLOTFRAME_TIMESLOTS - 1);
     }
-    
+
     struct tsch_slotframe *sl = tsch_schedule_get_slotframe_by_handle(1);
-    
+
     // Remove old RX link if it exists
     if (rx_timeslot != 0) {
         tsch_schedule_remove_link_by_offsets(sl, rx_timeslot, 0);
     }
-    
+
     // Add dedicated RX link
     rx_timeslot = new_rx_slot;
-    tsch_schedule_add_link(sl, 
+    tsch_schedule_add_link(sl,
         LINK_OPTION_RX,  // RX only - dedicated receive slot
-        LINK_TYPE_NORMAL, 
-        &tsch_broadcast_address, 
+        LINK_TYPE_NORMAL,
+        &tsch_broadcast_address,
         rx_timeslot, 0, 1);
-    
+
     rx_slot_configured = true;
     LOG_DBG("Configured receive slot: %u\n", rx_timeslot);
 }
@@ -341,9 +342,9 @@ void gchmac_init() {
         tsch_set_coordinator(1);
         tsch_set_pan_secured(0);
         tsch_set_eb_period(4 * CLOCK_SECOND);
-        tsch_start_coordinator();
     #endif
 
+	memset(neighbors, 0, sizeof(neighbors) * GCHMAC_MAX_NEIGHBORS);
     tsch_set_coordinator(is_coordinator);
     nullnet_buf = payload_buf;
     nullnet_set_input_callback(input_cb);

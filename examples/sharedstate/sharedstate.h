@@ -16,9 +16,6 @@
 #define NETSTACK_CONF_NETWORK nullnet_driver
 #define NETSTACK_CONF_WITH_NULLNET 1
 
-#define LOG_CONF_LEVEL_NULLNET LOG_LEVEL_INFO
-#define LOG_CONF_LEVEL_MAC LOG_LEVEL_INFO
-
 #include <stdint.h>
 
 #include "sys/rtimer.h"

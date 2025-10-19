@@ -1,5 +1,6 @@
 #include "contiki.h"
 #include "sharedstate.h"
+#include "gchmac/gchmac.h"
 
 #include <string.h>
 #include <stdbool.h>
@@ -147,11 +148,9 @@ void init_sharedstate(sharedstate_t *sharedstate, int node_id)
 	}
 	random_init(0);
 
-	nullnet_set_input_callback(recv_callback);
+	// nullnet_set_input_callback(recv_callback);
 	NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, 18);
-	// TODO: transmit the whole output buffer
-	nullnet_buf = (uint8_t *)&(sharedstate->output_buf);
-	nullnet_len = sizeof(sharedstate_pkt_t) * OUTPUT_BUF_SIZE;
+	// nullnet_buf = (uint8_t *)&(sharedstate->output_buf);
 	// nullnet_len = sizeof(sharedstate_pkt_t) * OUTPUT_BUF_SIZE;
 	LOG_INFO("SharedState initialized\n");
 }
@@ -263,7 +262,7 @@ void sharedstate_tx(sharedstate_t *sharedstate)
 	sharedstate->msgs_dropped_nr = 0;
 	sharedstate->overload_cumulative = 0;
 
-	NETSTACK_NETWORK.output(NULL);
+	gchmac_broadcast(sharedstate->output_buf, PKT_SIZE_BYTES * OUTPUT_BUF_SIZE);
 }
 
 PROCESS(sharedstate_process, "Sharedstate process");
@@ -277,6 +276,8 @@ PROCESS_THREAD(sharedstate_process, ev, data)
 	PROCESS_BEGIN();
 
 	init_sharedstate(&sharedstate, linkaddr_node_addr.u8[1]);
+	gchmac_init();
+	gchmac_set_input_callback(recv_callback);
 
 	etimer_set(&periodic_timer, CLOCK_SECOND * 10);
 
