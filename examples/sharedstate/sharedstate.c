@@ -37,8 +37,11 @@ int inputbuf_contains(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 int cache_contains(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 {
 	int pkt_id = get_pkt_id(pkt->pkt_id);
-	for (int i = 0; i < sharedstate->cache_entries_cnt; i++)
+	for (int i = 0; i < CACHE_SIZE; i++)
 	{
+		if (!sharedstate->cache_occupied_index[i]) {
+			continue;
+		}
 		if (get_pkt_id(sharedstate->cache[i].pkt_id) == pkt_id)
 		{
 			return i;
@@ -51,7 +54,7 @@ void cache_remove(sharedstate_t *sharedstate, int cache_index)
 {
 	if (!sharedstate->cache_occupied_index[cache_index])
 	{
-		LOG_INFO("Attempt to remove non-existing entry from cache\n");
+		LOG_INFO("Attempt to remove non-existing entry from cache: %d\n", cache_index);
 		return;
 	}
 	sharedstate->cache_occupied_index[cache_index] = false;
@@ -192,6 +195,7 @@ void sharedstate_app_send(sharedstate_t *sharedstate, void *data, uint16_t len)
 		LOG_INFO("Sent more than max data len: %u\n", PKT_DATA_SIZE_BYTES);
 		return;
 	}
+
 	sharedstate_pkt_t pkt;
 	pkt.tstamp = RTIMER_NOW();
 	pkt.pkt_id[0] = sharedstate->node_id;
@@ -281,7 +285,7 @@ PROCESS_THREAD(sharedstate_process, ev, data)
 		PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
 
 		sprintf(sens_val, "%d\n", 25 + (rand() % 3) - 1);
-		LOG_INFO("Sensor SS put: %d\n", sens_val);
+		LOG_INFO("Sensor SS put: %s\n", sens_val);
 
 		// account for \0
 		sharedstate_app_send(&sharedstate, &sens_val, strlen(sens_val) + 1);
