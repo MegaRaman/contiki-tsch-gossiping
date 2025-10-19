@@ -153,7 +153,7 @@ void init_sharedstate(sharedstate_t *sharedstate, int node_id)
 	random_init(0);
 
 	// nullnet_set_input_callback(recv_callback);
-	NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, 18);
+	// NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, 18);
 	// nullnet_buf = (uint8_t *)&(sharedstate->output_buf);
 	// nullnet_len = sizeof(sharedstate_pkt_t) * OUTPUT_BUF_SIZE;
 	LOG_INFO("SharedState initialized\n");

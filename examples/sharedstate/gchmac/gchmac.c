@@ -346,7 +346,6 @@ void gchmac_init() {
         tsch_set_eb_period(4 * CLOCK_SECOND);
     #endif
 
-	memset(neighbors, 0, sizeof(neighbors) * GCHMAC_MAX_NEIGHBORS);
     tsch_set_coordinator(is_coordinator);
     nullnet_buf = payload_buf;
     nullnet_set_input_callback(input_cb);
