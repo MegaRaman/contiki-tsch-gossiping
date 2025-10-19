@@ -13,6 +13,7 @@
 #include "sys/log.h"
 #include "lib/random.h"
 #include "sys/etimer.h"
+#include "net/mac/tsch/tsch.h"
 
 #define LOG_MODULE "Sharedstate"
 #define LOG_LEVEL LOG_LEVEL_INFO // LOG info type
@@ -55,7 +56,7 @@ void cache_remove(sharedstate_t *sharedstate, int cache_index)
 {
 	if (!sharedstate->cache_occupied_index[cache_index])
 	{
-		LOG_INFO("Attempt to remove non-existing entry from cache: %d\n", cache_index);
+		// LOG_INFO("Attempt to remove non-existing entry from cache: %d\n", cache_index);
 		return;
 	}
 	sharedstate->cache_occupied_index[cache_index] = false;
@@ -76,7 +77,7 @@ bool cache_add(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 			return true;
 		}
 	}
-	LOG_INFO("Error: no place in cache, but there should be\n");
+	// LOG_INFO("Error: no place in cache, but there should be\n");
 	return false;
 }
 
@@ -85,7 +86,7 @@ void cache_get_random_entries(sharedstate_t *sharedstate, uint8_t entry_nr,
 {
 	if (sharedstate->cache_entries_cnt < entry_nr)
 	{
-		LOG_WARN("Not enough cache entries to get %u random ones\n", entry_nr);
+		// LOG_WARN("Not enough cache entries to get %u random ones\n", entry_nr);
 		return;
 	}
 
@@ -126,7 +127,7 @@ static void recv_callback(const void *data,
 	}
 	else
 	{
-		LOG_WARN("Received invalid data size: '%d'\n", datalen);
+		// LOG_WARN("Received invalid data size: '%d'\n", datalen);
 		return;
 	}
 }
@@ -159,18 +160,20 @@ void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 {
 	if (sharedstate->input_buf_cnt == INPUT_BUF_SIZE)
 	{
-		LOG_INFO("Input buffer full, dropping pkt id: %u data: %s\n",
-				 pkt->pkt_id[1],
-				 pkt->data);
+		LOG_INFO("Input buffer full, dropping pkt id: %u %u data: %s\n",
+				pkt->pkt_id[0],
+				pkt->pkt_id[1],
+				pkt->data);
 		sharedstate->msgs_dropped_nr++;
 		return;
 	}
 	int contains_i = inputbuf_contains(sharedstate, pkt);
 	if (contains_i >= 0)
 	{
-		LOG_INFO("Input buffer already contains pkt id: %u data: %s\n",
-				 pkt->pkt_id[1],
-				 pkt->data);
+		LOG_INFO("Input buffer already contains pkt id: %u %u data: %s\n",
+				pkt->pkt_id[0],
+				pkt->pkt_id[1],
+				pkt->data);
 		sharedstate_pkt_t inbuf_pkt = sharedstate->input_buf[contains_i];
 		if (inbuf_pkt.tstamp < pkt->tstamp)
 		{
@@ -179,9 +182,10 @@ void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 	}
 	else
 	{
-		LOG_INFO("Adding pkt id: %u data: %s to input buffer\n",
-				 pkt->pkt_id[1],
-				 pkt->data);
+		LOG_INFO("Adding pkt id: %u %u data: %s to input buffer\n",
+				pkt->pkt_id[0],
+				pkt->pkt_id[1],
+				pkt->data);
 		sharedstate->input_buf[sharedstate->input_buf_cnt] = *pkt;
 		sharedstate->input_buf_cnt++;
 	}
@@ -191,12 +195,12 @@ void sharedstate_app_send(sharedstate_t *sharedstate, void *data, uint16_t len)
 {
 	if (len > PKT_DATA_SIZE_BYTES)
 	{
-		LOG_INFO("Sent more than max data len: %u\n", PKT_DATA_SIZE_BYTES);
+		// LOG_INFO("Sent more than max data len: %u\n", PKT_DATA_SIZE_BYTES);
 		return;
 	}
 
 	sharedstate_pkt_t pkt;
-	pkt.tstamp = RTIMER_NOW();
+	pkt.tstamp = tsch_get_network_uptime_ticks();
 	pkt.pkt_id[0] = sharedstate->node_id;
 	pkt.pkt_id[1] = msg_id++;
 	pkt.overload = 0;
@@ -243,7 +247,7 @@ void sharedstate_tx(sharedstate_t *sharedstate)
 {
 	sharedstate_update_cache(sharedstate);
 	if (sharedstate->cache_entries_cnt < OUTPUT_BUF_SIZE) {
-		LOG_INFO("Not enough entries to tx\n");
+		// LOG_INFO("Not enough entries to tx\n");
 		return;
 	}
 
@@ -255,14 +259,26 @@ void sharedstate_tx(sharedstate_t *sharedstate)
 		cache_remove(sharedstate, entries[i]);
 	}
 
-	LOG_INFO("Broadcasting id: %u data: %s\n",
-			 sharedstate->output_buf[0].pkt_id[1],
-			 sharedstate->output_buf[0].data);
+	// LOG_INFO("Broadcasting id: %u data: %s\n",
+	// 		 sharedstate->output_buf[0].pkt_id[1],
+	// 		 sharedstate->output_buf[0].data);
 
 	sharedstate->msgs_dropped_nr = 0;
 	sharedstate->overload_cumulative = 0;
 
 	gchmac_broadcast(sharedstate->output_buf, PKT_SIZE_BYTES * OUTPUT_BUF_SIZE);
+}
+
+void sharedstate_log_cache(sharedstate_t *sharedstate) {
+	LOG_INFO("Printing node cache\n");
+	for (int i = 0; i < CACHE_SIZE; i++) {
+		if (!sharedstate->cache_occupied_index[i])
+			continue;
+		LOG_INFO("pkt ID: %d tstamp: %" RTIMER_PRI " data: %s\n",
+				get_pkt_id(sharedstate->cache[i].pkt_id),
+				sharedstate->cache[i].tstamp,
+				sharedstate->cache[i].data);
+	}
 }
 
 PROCESS(sharedstate_process, "Sharedstate process");
@@ -286,11 +302,14 @@ PROCESS_THREAD(sharedstate_process, ev, data)
 		PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
 
 		sprintf(sens_val, "%d\n", 25 + (rand() % 3) - 1);
-		LOG_INFO("Sensor SS put: %s\n", sens_val);
+		// LOG_INFO("Sensor SS put: %s\n", sens_val);
 
 		// account for \0
 		sharedstate_app_send(&sharedstate, &sens_val, strlen(sens_val) + 1);
 		sharedstate_tx(&sharedstate);
+		if (random_rand() % 100 < 10) {
+			sharedstate_log_cache(&sharedstate);
+		}
 
 		etimer_reset(&periodic_timer);
 	}

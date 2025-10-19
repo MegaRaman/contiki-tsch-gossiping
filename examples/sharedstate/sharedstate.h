@@ -4,17 +4,14 @@
 #define PKT_SIZE_BYTES 32
 // pkt id format: byte 0 - node_id, byte 1 - msg_id
 #define PKT_ID_SIZE_BYTES 2
-#define TIMESTAMP_SIZE_BYTES (RTIMER_CLOCK_SIZE)
+#define TIMESTAMP_SIZE_BYTES (8)
 #define OVERLOAD_SIZE_BYTES 1
 #define PKT_DATA_SIZE_BYTES (PKT_SIZE_BYTES - PKT_ID_SIZE_BYTES - TIMESTAMP_SIZE_BYTES - OVERLOAD_SIZE_BYTES)
 
 /* input buffer size is at most as big as the cache */
-#define INPUT_BUF_SIZE 20
-#define CACHE_SIZE 32
-#define OUTPUT_BUF_SIZE 2
-
-#define NETSTACK_CONF_NETWORK nullnet_driver
-#define NETSTACK_CONF_WITH_NULLNET 1
+#define INPUT_BUF_SIZE 10
+#define CACHE_SIZE 20
+#define OUTPUT_BUF_SIZE 3
 
 #include <stdint.h>
 
@@ -23,7 +20,7 @@
 typedef struct
 {
 	uint8_t pkt_id[PKT_ID_SIZE_BYTES];
-	rtimer_clock_t tstamp;
+	uint64_t tstamp;
 	uint8_t overload;
 	uint8_t data[PKT_DATA_SIZE_BYTES];
 } sharedstate_pkt_t;
