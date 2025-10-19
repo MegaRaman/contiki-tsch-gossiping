@@ -148,7 +148,7 @@ void choose_tx_slot() {
         tsch_schedule_remove_link_by_offsets(sl, tx_timeslot, 0);
     }
     tx_timeslot = new_slot;
-    LOG_DBG("Transmission timeslot: %u\n", tx_timeslot);
+    LOG_DBG("together tx: %u\n", tx_timeslot);
     tsch_schedule_add_link(sl, LINK_OPTION_TX, LINK_TYPE_NORMAL, &tsch_broadcast_address, tx_timeslot, 0, 1);
 
     // Add TX link
@@ -192,7 +192,7 @@ static void configure_receive_slot(void)
         rx_timeslot, 0, 1);
 
     rx_slot_configured = true;
-    LOG_DBG("Configured receive slot: %u\n", rx_timeslot);
+    LOG_DBG("together rx: %u\n", rx_timeslot);
 }
 
 void heartbeat_callback(const void *data, uint16_t len, const linkaddr_t *src, const linkaddr_t *dest) {
@@ -292,12 +292,14 @@ void input_cb(const void *data, uint16_t len, const linkaddr_t *src, const linka
 
     switch (type) {
         case GCHMAC_PACKET_TYPE_DATA:
+			LOG_INFO("HERE1\n");
             if (upper_input_callback != NULL){
                 LOG_DBG(" data correct\n");
                 upper_input_callback(payload, payload_len, src, dest);
             }
             break;
         case GCHMAC_PACKET_TYPE_HEARTBEAT:
+			LOG_INFO("HERE2\n");
             LOG_DBG(" heartbeat\n");
             heartbeat_callback(payload, payload_len, src, dest);
             break;

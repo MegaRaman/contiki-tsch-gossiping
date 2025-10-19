@@ -1,9 +1,9 @@
 #ifndef SHAREDSTATE_H_
 #define SHAREDSTATE_H_
 
-#define PKT_SIZE_BYTES 32
-// pkt id format: byte 0 - node_id, byte 1 - msg_id
-#define PKT_ID_SIZE_BYTES 2
+#define PKT_SIZE_BYTES	40
+// pkt id format: byte 0 - receiver id, byte 1 - msg_id
+#define PKT_ID_SIZE_BYTES	2
 #define TIMESTAMP_SIZE_BYTES (8)
 #define OVERLOAD_SIZE_BYTES 1
 #define PKT_DATA_SIZE_BYTES (PKT_SIZE_BYTES - PKT_ID_SIZE_BYTES - TIMESTAMP_SIZE_BYTES - OVERLOAD_SIZE_BYTES)
@@ -44,7 +44,8 @@ typedef struct
 void init_sharedstate(sharedstate_t *sharedstate, int node_id);
 void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt);
 void sharedstate_tx(sharedstate_t *sharedstate);
-void sharedstate_app_send(sharedstate_t *sharedstate, void *data, uint16_t len);
+void sharedstate_app_send(sharedstate_t *sharedstate, void *data, uint16_t len,
+																uint8_t rx_id);
 
 static inline int get_pkt_id(uint8_t pkt_id[PKT_ID_SIZE_BYTES])
 {

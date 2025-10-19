@@ -16,7 +16,9 @@
 #include "net/mac/tsch/tsch.h"
 
 #define LOG_MODULE "Sharedstate"
-#define LOG_LEVEL LOG_LEVEL_INFO // LOG info type
+#define LOG_LEVEL LOG_LEVEL_DBG // LOG info type
+
+#define NODE_CNT	6
 
 static sharedstate_t sharedstate;
 uint8_t msg_id = 0;
@@ -116,6 +118,7 @@ static void recv_callback(const void *data,
 						  const linkaddr_t *src,
 						  const linkaddr_t *dest)
 {
+	LOG_INFO("HERE\n");
 	if (datalen == sizeof(sharedstate_pkt_t) * OUTPUT_BUF_SIZE)
 	{
 		// LOG_INFO("received id: %u data: %u\n",
@@ -158,6 +161,9 @@ void init_sharedstate(sharedstate_t *sharedstate, int node_id)
 
 void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 {
+	// if (pkt->pkt_id[0] == sharedstate->node_id) {
+		LOG_INFO("shst: rx %d %d\n", sharedstate->node_id, pkt->pkt_id[1]);
+	// }
 	if (sharedstate->input_buf_cnt == INPUT_BUF_SIZE)
 	{
 		LOG_INFO("Input buffer full, dropping pkt id: %u %u data: %s\n",
@@ -189,9 +195,11 @@ void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 		sharedstate->input_buf[sharedstate->input_buf_cnt] = *pkt;
 		sharedstate->input_buf_cnt++;
 	}
+	sharedstate->overload_cumulative += pkt->overload;
 }
 
-void sharedstate_app_send(sharedstate_t *sharedstate, void *data, uint16_t len)
+void sharedstate_app_send(sharedstate_t *sharedstate, void *data, uint16_t len,
+															uint8_t rx_id)
 {
 	if (len > PKT_DATA_SIZE_BYTES)
 	{
@@ -201,9 +209,9 @@ void sharedstate_app_send(sharedstate_t *sharedstate, void *data, uint16_t len)
 
 	sharedstate_pkt_t pkt;
 	pkt.tstamp = tsch_get_network_uptime_ticks();
-	pkt.pkt_id[0] = sharedstate->node_id;
+	pkt.pkt_id[0] = rx_id;
 	pkt.pkt_id[1] = msg_id++;
-	pkt.overload = 0;
+	pkt.overload = sharedstate->msgs_dropped_nr;
 	memcpy(pkt.data, data, len);
 	cache_add(sharedstate, &pkt);
 }
@@ -255,6 +263,7 @@ void sharedstate_tx(sharedstate_t *sharedstate)
 	cache_get_random_entries(sharedstate, OUTPUT_BUF_SIZE, entries);
 	for (int i = 0; i < OUTPUT_BUF_SIZE; i++)
 	{
+		sharedstate->cache[entries[i]].overload = sharedstate->overload_cumulative;
 		sharedstate->output_buf[i] = sharedstate->cache[entries[i]];
 		cache_remove(sharedstate, entries[i]);
 	}
@@ -265,7 +274,7 @@ void sharedstate_tx(sharedstate_t *sharedstate)
 
 	sharedstate->msgs_dropped_nr = 0;
 	sharedstate->overload_cumulative = 0;
-
+	LOG_INFO("HERE3\n");
 	gchmac_broadcast(sharedstate->output_buf, PKT_SIZE_BYTES * OUTPUT_BUF_SIZE);
 }
 
@@ -274,7 +283,7 @@ void sharedstate_log_cache(sharedstate_t *sharedstate) {
 	for (int i = 0; i < CACHE_SIZE; i++) {
 		if (!sharedstate->cache_occupied_index[i])
 			continue;
-		LOG_INFO("pkt ID: %d tstamp: %" RTIMER_PRI " data: %s\n",
+		LOG_INFO("pkt ID: %d tstamp: %llu data: %s\n",
 				get_pkt_id(sharedstate->cache[i].pkt_id),
 				sharedstate->cache[i].tstamp,
 				sharedstate->cache[i].data);
@@ -287,7 +296,7 @@ AUTOSTART_PROCESSES(&sharedstate_process);
 PROCESS_THREAD(sharedstate_process, ev, data)
 {
 	static struct etimer periodic_timer;
-	static char sens_val[PKT_DATA_SIZE_BYTES];
+	static char payload[PKT_DATA_SIZE_BYTES];
 
 	PROCESS_BEGIN();
 
@@ -300,16 +309,17 @@ PROCESS_THREAD(sharedstate_process, ev, data)
 	while (1)
 	{
 		PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
-
-		sprintf(sens_val, "%d\n", 25 + (rand() % 3) - 1);
+		int rand_rx_id = random_rand() % NODE_CNT;
+		sprintf(payload, "%d %d\n", msg_id, (random_rand() % NODE_CNT) + 1);
 		// LOG_INFO("Sensor SS put: %s\n", sens_val);
 
 		// account for \0
-		sharedstate_app_send(&sharedstate, &sens_val, strlen(sens_val) + 1);
+		LOG_INFO("shst: tx %d %d\n", rand_rx_id ,msg_id);
+		sharedstate_app_send(&sharedstate, payload, strlen(payload) + 1, rand_rx_id);
 		sharedstate_tx(&sharedstate);
-		if (random_rand() % 100 < 10) {
-			sharedstate_log_cache(&sharedstate);
-		}
+		// if (random_rand() % 100 < 10) {
+		// 	sharedstate_log_cache(&sharedstate);
+		// }
 
 		etimer_reset(&periodic_timer);
 	}
