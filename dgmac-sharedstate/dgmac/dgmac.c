@@ -53,7 +53,7 @@
 
 #include "sys/log.h"
 #define LOG_MODULE "DG-MAC"
-#define LOG_LEVEL LOG_LEVEL_DBG
+#define LOG_LEVEL LOG_LEVEL_INFO
 
 #if COOJA != 1
 #include "sys/node-id.h"
@@ -122,14 +122,14 @@ void choose_tx_slot() {
 
     if(i==DGMAC_MAX_NEIGHBORS){
         new_slot = 1 + random_rand() % DGMAC_MAX_NEIGHBORS;
-    } 
+    }
 
 
-    
+
     tx_timeslot = new_slot;
     detected_collision = false;
     LOG_DBG("Transmission timeslot: %u\n", tx_timeslot);
- 
+
 
 }
 
@@ -177,7 +177,7 @@ void heartbeat_callback(const void *data, uint16_t len, const linkaddr_t *src, c
         LOG_INFO("Collision detected, will change TX slot next heartbeat.\n");
         detected_collision = true;
     }
-    
+
 
     linkaddr_copy(&nbr->addr, src);
     nbr->ttl = DGMAC_HEARTBEAT_TTL;

@@ -1,7 +1,8 @@
 CONTIKI_PROJECT = node
 all: $(CONTIKI_PROJECT)
-CONTIKI = ../../../../contiki-ng
+CONTIKI = ../contiki-ng
 MODULES_REL += dgmac
+MODULES_REL += sharedstate
 
 #use this to enable TSCH: MAKE_MAC = MAKE_MAC_TSCH
 #MAKE_MAC ?= MAKE_MAC_TSCH

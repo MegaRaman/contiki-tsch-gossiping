@@ -13,15 +13,13 @@
 #define CACHE_SIZE 32
 #define OUTPUT_BUF_SIZE 2
 
-#define NETSTACK_CONF_NETWORK nullnet_driver
-#define NETSTACK_CONF_WITH_NULLNET 1
-
-#define LOG_CONF_LEVEL_NULLNET LOG_LEVEL_INFO
-#define LOG_CONF_LEVEL_MAC LOG_LEVEL_INFO
-
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "sys/rtimer.h"
+#include "linkaddr.h"
+
+typedef void (*tx_func_t)(void*,uint16_t);
 
 typedef struct
 {
@@ -29,7 +27,7 @@ typedef struct
 	rtimer_clock_t tstamp;
 	uint8_t overload;
 	uint8_t data[PKT_DATA_SIZE_BYTES];
-} sharedstate_pkt_t;
+} __attribute__((packed)) sharedstate_pkt_t;
 
 typedef struct
 {
@@ -45,12 +43,19 @@ typedef struct
 	uint8_t msgs_dropped_nr;
 	uint16_t overload_cumulative;
 	int node_id;
+
+	tx_func_t tx_func;
 } sharedstate_t;
 
-void init_sharedstate(sharedstate_t *sharedstate, int node_id);
+
+void init_sharedstate(sharedstate_t *sharedstate, int node_id, tx_func_t tx_func);
 void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt);
 void sharedstate_tx(sharedstate_t *sharedstate);
 void sharedstate_app_send(sharedstate_t *sharedstate, void *data, uint16_t len, uint8_t rx_id);
+void sharedstate_recv_callback(const void *data,
+						  uint16_t datalen,
+						  const linkaddr_t *src,
+						  const linkaddr_t *dest);
 
 static inline int get_pkt_id(uint8_t pkt_id[PKT_ID_SIZE_BYTES])
 {

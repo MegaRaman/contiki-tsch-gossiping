@@ -3,12 +3,8 @@
 
 #include <string.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdint.h>
-#include <stdio.h>
 
-#include "net/netstack.h"
-#include "net/nullnet/nullnet.h"
 #include "sys/log.h"
 #include "lib/random.h"
 #include "sys/etimer.h"
@@ -16,9 +12,8 @@
 #define LOG_MODULE "Sharedstate"
 #define LOG_LEVEL LOG_LEVEL_INFO // LOG info type
 
-#define NODES_CNT	6
 
-static sharedstate_t sharedstate;
+sharedstate_t sharedstate;
 uint8_t msg_id = 0;
 
 // TODO: do we need a hashmap lookup?
@@ -86,7 +81,7 @@ void cache_get_random_entries(sharedstate_t *sharedstate, uint8_t entry_nr,
 {
 	if (sharedstate->cache_entries_cnt < entry_nr)
 	{
-		LOG_WARN("Not enough cache entries to get %u random ones\n", entry_nr);
+		// LOG_WARN("Not enough cache entries to get %u random ones\n", entry_nr);
 		return;
 	}
 
@@ -111,7 +106,7 @@ void cache_get_random_entries(sharedstate_t *sharedstate, uint8_t entry_nr,
 	}
 }
 
-static void recv_callback(const void *data,
+void sharedstate_recv_callback(const void *data,
 						  uint16_t datalen,
 						  const linkaddr_t *src,
 						  const linkaddr_t *dest)
@@ -132,7 +127,7 @@ static void recv_callback(const void *data,
 	}
 }
 
-void init_sharedstate(sharedstate_t *sharedstate, int node_id)
+void init_sharedstate(sharedstate_t *sharedstate, int node_id, tx_func_t tx_func)
 {
 	memset(sharedstate, 0, sizeof(sharedstate_t));
 
@@ -149,11 +144,10 @@ void init_sharedstate(sharedstate_t *sharedstate, int node_id)
 	}
 	random_init(node_id);
 
-	nullnet_set_input_callback(recv_callback);
-	NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, 18);
+	sharedstate->tx_func = tx_func;
 	// TODO: transmit the whole output buffer
-	nullnet_buf = (uint8_t *)&(sharedstate->output_buf);
-	nullnet_len = sizeof(sharedstate_pkt_t) * OUTPUT_BUF_SIZE;
+	// nullnet_buf = (uint8_t *)&(sharedstate->output_buf);
+	// nullnet_len = sizeof(sharedstate_pkt_t) * OUTPUT_BUF_SIZE;
 	// nullnet_len = sizeof(sharedstate_pkt_t) * OUTPUT_BUF_SIZE;
 	LOG_INFO("SharedState initialized\n");
 }
@@ -268,42 +262,43 @@ void sharedstate_tx(sharedstate_t *sharedstate)
 	sharedstate->msgs_dropped_nr = 0;
 	sharedstate->overload_cumulative = 0;
 
-	NETSTACK_NETWORK.output(NULL);
+	// NETSTACK_NETWORK.output(NULL);
+	sharedstate->tx_func(sharedstate->output_buf, PKT_SIZE_BYTES * OUTPUT_BUF_SIZE);
 }
 
-PROCESS(sharedstate_process, "Sharedstate process");
-AUTOSTART_PROCESSES(&sharedstate_process);
+// PROCESS(sharedstate_process, "Sharedstate process");
+// AUTOSTART_PROCESSES(&sharedstate_process);
 
-PROCESS_THREAD(sharedstate_process, ev, data)
-{
-	static struct etimer periodic_timer;
-	static char sens_val[PKT_DATA_SIZE_BYTES];
+// PROCESS_THREAD(sharedstate_process, ev, data)
+// {
+// 	static struct etimer periodic_timer;
+// 	static char sens_val[PKT_DATA_SIZE_BYTES];
 
-	PROCESS_BEGIN();
+// 	PROCESS_BEGIN();
 
-	init_sharedstate(&sharedstate, linkaddr_node_addr.u8[1]);
+// 	init_sharedstate(&sharedstate, linkaddr_node_addr.u8[1]);
 
-	etimer_set(&periodic_timer, (random_rand() % CLOCK_SECOND * 10) + 5);
+// 	etimer_set(&periodic_timer, (random_rand() % CLOCK_SECOND * 10) + 5);
 
-	while (1)
-	{
-		PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
+// 	while (1)
+// 	{
+// 		PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
 
-		sprintf(sens_val, "%d\n", 25 + (rand() % 3) - 1);
-		// LOG_INFO("Sensor SS put: %s\n", sens_val);
+// 		sprintf(sens_val, "%d\n", 25 + (rand() % 3) - 1);
+// 		// LOG_INFO("Sensor SS put: %s\n", sens_val);
 
-		uint8_t rx_id = (random_rand () % NODES_CNT) + 1;
-		while (rx_id == sharedstate.node_id) {
-			rx_id = (random_rand () % NODES_CNT) + 1;
-		}
-		LOG_INFO("shst: tx %d %d\n", rx_id, msg_id);
-		// account for \0
-		sharedstate_app_send(&sharedstate, &sens_val, strlen(sens_val) + 1, rx_id);
-		sharedstate_tx(&sharedstate);
+// 		uint8_t rx_id = (random_rand () % NODES_CNT) + 1;
+// 		while (rx_id == sharedstate.node_id) {
+// 			rx_id = (random_rand () % NODES_CNT) + 1;
+// 		}
+// 		LOG_INFO("shst: tx %d %d\n", rx_id, msg_id);
+// 		// account for \0
+// 		sharedstate_app_send(&sharedstate, &sens_val, strlen(sens_val) + 1, rx_id);
+// 		sharedstate_tx(&sharedstate);
 
-		etimer_reset(&periodic_timer);
-	}
+// 		etimer_reset(&periodic_timer);
+// 	}
 
-	PROCESS_END();
-}
+// 	PROCESS_END();
+// }
 
