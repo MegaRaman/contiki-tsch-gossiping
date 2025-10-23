@@ -2,7 +2,7 @@
 #define SHAREDSTATE_H_
 
 #define PKT_SIZE_BYTES 32
-// pkt id format: byte 0 - node_id, byte 1 - msg_id
+// pkt id format: byte 0 - rx_node_id, byte 1 - msg_id
 #define PKT_ID_SIZE_BYTES 2
 #define TIMESTAMP_SIZE_BYTES (RTIMER_CLOCK_SIZE)
 #define OVERLOAD_SIZE_BYTES 1

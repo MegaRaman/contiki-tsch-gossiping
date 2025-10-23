@@ -56,7 +56,7 @@ void cache_remove(sharedstate_t *sharedstate, int cache_index)
 {
 	if (!sharedstate->cache_occupied_index[cache_index])
 	{
-		LOG_INFO("Attempt to remove non-existing entry from cache: %d\n", cache_index);
+		// LOG_INFO("Attempt to remove non-existing entry from cache: %d\n", cache_index);
 		return;
 	}
 	sharedstate->cache_occupied_index[cache_index] = false;
@@ -77,7 +77,7 @@ bool cache_add(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 			return true;
 		}
 	}
-	LOG_INFO("Error: no place in cache, but there should be\n");
+	// LOG_INFO("Error: no place in cache, but there should be\n");
 	return false;
 }
 
@@ -127,7 +127,7 @@ static void recv_callback(const void *data,
 	}
 	else
 	{
-		LOG_WARN("Received invalid data size: '%d'\n", datalen);
+		// LOG_WARN("Received invalid data size: '%d'\n", datalen);
 		return;
 	}
 }
@@ -147,7 +147,7 @@ void init_sharedstate(sharedstate_t *sharedstate, int node_id)
 	{
 		sharedstate->cache_occupied_index[i] = false;
 	}
-	random_init(0);
+	random_init(node_id);
 
 	nullnet_set_input_callback(recv_callback);
 	NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, 18);
@@ -165,18 +165,18 @@ void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 	}
 	if (sharedstate->input_buf_cnt == INPUT_BUF_SIZE)
 	{
-		LOG_INFO("Input buffer full, dropping pkt id: %u data: %s\n",
-				 pkt->pkt_id[1],
-				 pkt->data);
+		// LOG_INFO("Input buffer full, dropping pkt id: %u data: %s\n",
+		// 		 pkt->pkt_id[1],
+		// 		 pkt->data);
 		sharedstate->msgs_dropped_nr++;
 		return;
 	}
 	int contains_i = inputbuf_contains(sharedstate, pkt);
 	if (contains_i >= 0)
 	{
-		LOG_INFO("Input buffer already contains pkt id: %u data: %s\n",
-				 pkt->pkt_id[1],
-				 pkt->data);
+		// LOG_INFO("Input buffer already contains pkt id: %u data: %s\n",
+		// 		 pkt->pkt_id[1],
+		// 		 pkt->data);
 		sharedstate_pkt_t inbuf_pkt = sharedstate->input_buf[contains_i];
 		if (inbuf_pkt.tstamp < pkt->tstamp)
 		{
@@ -185,9 +185,9 @@ void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 	}
 	else
 	{
-		LOG_INFO("Adding pkt id: %u data: %s to input buffer\n",
-				 pkt->pkt_id[1],
-				 pkt->data);
+		// LOG_INFO("Adding pkt id: %u data: %s to input buffer\n",
+		// 		 pkt->pkt_id[1],
+		// 		 pkt->data);
 		sharedstate->input_buf[sharedstate->input_buf_cnt] = *pkt;
 		sharedstate->input_buf_cnt++;
 	}
@@ -197,7 +197,7 @@ void sharedstate_app_send(sharedstate_t *sharedstate, void *data, uint16_t len, 
 {
 	if (len > PKT_DATA_SIZE_BYTES)
 	{
-		LOG_INFO("Sent more than max data len: %u\n", PKT_DATA_SIZE_BYTES);
+		// LOG_INFO("Sent more than max data len: %u\n", PKT_DATA_SIZE_BYTES);
 		return;
 	}
 
@@ -249,7 +249,7 @@ void sharedstate_tx(sharedstate_t *sharedstate)
 {
 	sharedstate_update_cache(sharedstate);
 	if (sharedstate->cache_entries_cnt < OUTPUT_BUF_SIZE) {
-		LOG_INFO("Not enough entries to tx\n");
+		// LOG_INFO("Not enough entries to tx\n");
 		return;
 	}
 
@@ -261,9 +261,9 @@ void sharedstate_tx(sharedstate_t *sharedstate)
 		cache_remove(sharedstate, entries[i]);
 	}
 
-	LOG_INFO("Broadcasting id: %u data: %s\n",
-			 sharedstate->output_buf[0].pkt_id[1],
-			 sharedstate->output_buf[0].data);
+	// LOG_INFO("Broadcasting id: %u data: %s\n",
+	// 		 sharedstate->output_buf[0].pkt_id[1],
+	// 		 sharedstate->output_buf[0].data);
 
 	sharedstate->msgs_dropped_nr = 0;
 	sharedstate->overload_cumulative = 0;
@@ -283,14 +283,14 @@ PROCESS_THREAD(sharedstate_process, ev, data)
 
 	init_sharedstate(&sharedstate, linkaddr_node_addr.u8[1]);
 
-	etimer_set(&periodic_timer, CLOCK_SECOND * 10);
+	etimer_set(&periodic_timer, (random_rand() % CLOCK_SECOND * 10) + 5);
 
 	while (1)
 	{
 		PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
 
 		sprintf(sens_val, "%d\n", 25 + (rand() % 3) - 1);
-		LOG_INFO("Sensor SS put: %s\n", sens_val);
+		// LOG_INFO("Sensor SS put: %s\n", sens_val);
 
 		uint8_t rx_id = (random_rand () % NODES_CNT) + 1;
 		while (rx_id == sharedstate.node_id) {
