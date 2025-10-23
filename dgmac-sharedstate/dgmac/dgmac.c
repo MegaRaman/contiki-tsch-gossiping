@@ -115,14 +115,19 @@ void choose_tx_slot() {
     }
     uint16_t new_slot = 1 + random_rand() % DGMAC_MAX_NEIGHBORS;
 
-
-    while ( (new_slot == tx_timeslot) ||((combined_nbrmap & (1 << new_slot)) != 0) ) {
+    int i = 0;
+    for (; i < DGMAC_MAX_NEIGHBORS && ((new_slot == tx_timeslot) ||((combined_nbrmap & (1 << new_slot)) != 0)); i++ ) {
         new_slot = 1 + (new_slot + 1) % DGMAC_MAX_NEIGHBORS;
     }
+
+    if(i==DGMAC_MAX_NEIGHBORS){
+        new_slot = 1 + random_rand() % DGMAC_MAX_NEIGHBORS;
+    } 
 
 
     
     tx_timeslot = new_slot;
+    detected_collision = false;
     LOG_DBG("Transmission timeslot: %u\n", tx_timeslot);
  
 
