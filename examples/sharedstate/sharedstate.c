@@ -16,7 +16,7 @@
 #define LOG_MODULE "Sharedstate"
 #define LOG_LEVEL LOG_LEVEL_INFO // LOG info type
 
-#define NODES_CNT	6
+#define NODES_CNT	50
 
 static sharedstate_t sharedstate;
 uint8_t msg_id = 0;
@@ -281,7 +281,7 @@ PROCESS_THREAD(sharedstate_process, ev, data)
 
 	PROCESS_BEGIN();
 
-	init_sharedstate(&sharedstate, linkaddr_node_addr.u8[1]);
+	init_sharedstate(&sharedstate, linkaddr_node_addr.u8[0]);
 
 	etimer_set(&periodic_timer, (random_rand() % CLOCK_SECOND * 10) + 5);
 
