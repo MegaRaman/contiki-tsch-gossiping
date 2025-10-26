@@ -12,11 +12,9 @@
 #define LOG_MODULE "Sharedstate"
 #define LOG_LEVEL LOG_LEVEL_INFO // LOG info type
 
-
 sharedstate_t sharedstate;
 uint8_t msg_id = 0;
 
-// TODO: do we need a hashmap lookup?
 int inputbuf_contains(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 {
 	int pkt_id = get_pkt_id(pkt->pkt_id);
@@ -30,13 +28,13 @@ int inputbuf_contains(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 	return -1;
 }
 
-// TODO: do we need a hashmap lookup?
 int cache_contains(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 {
 	int pkt_id = get_pkt_id(pkt->pkt_id);
 	for (int i = 0; i < CACHE_SIZE; i++)
 	{
-		if (!sharedstate->cache_occupied_index[i]) {
+		if (!sharedstate->cache_occupied_index[i])
+		{
 			continue;
 		}
 		if (get_pkt_id(sharedstate->cache[i].pkt_id) == pkt_id)
@@ -64,8 +62,10 @@ bool cache_add(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 	{
 		return false;
 	}
-	for (int i = 0; i < CACHE_SIZE; i++) {
-		if (!sharedstate->cache_occupied_index[i]) {
+	for (int i = 0; i < CACHE_SIZE; i++)
+	{
+		if (!sharedstate->cache_occupied_index[i])
+		{
 			sharedstate->cache[i] = *pkt;
 			sharedstate->cache_occupied_index[i] = true;
 			sharedstate->cache_entries_cnt++;
@@ -101,23 +101,25 @@ void cache_get_random_entries(sharedstate_t *sharedstate, uint8_t entry_nr,
 		occupied_indices[i] = occupied_indices[j];
 		occupied_indices[j] = temp;
 	}
-	for (int i = 0; i < entry_nr; i++) {
+	for (int i = 0; i < entry_nr; i++)
+	{
 		entries[i] = occupied_indices[i];
 	}
 }
 
 void sharedstate_recv_callback(const void *data,
-						  uint16_t datalen,
-						  const linkaddr_t *src,
-						  const linkaddr_t *dest)
+							   uint16_t datalen,
+							   const linkaddr_t *src,
+							   const linkaddr_t *dest)
 {
 	if (datalen == sizeof(sharedstate_pkt_t) * OUTPUT_BUF_SIZE)
 	{
 		// LOG_INFO("received id: %u data: %u\n",
 		// 		 ((sharedstate_pkt_t *)data)->pkt_id[1],
 		// 		 ((sharedstate_pkt_t *)data)->data[0]);
-		for (int i = 0; i < OUTPUT_BUF_SIZE; i++) {
-			sharedstate_rx(&sharedstate, ((sharedstate_pkt_t*)data) + i);
+		for (int i = 0; i < OUTPUT_BUF_SIZE; i++)
+		{
+			sharedstate_rx(&sharedstate, ((sharedstate_pkt_t *)data) + i);
 		}
 	}
 	else
@@ -154,7 +156,8 @@ void init_sharedstate(sharedstate_t *sharedstate, int node_id, tx_func_t tx_func
 
 void sharedstate_rx(sharedstate_t *sharedstate, sharedstate_pkt_t *pkt)
 {
-	if (pkt->pkt_id[0] == sharedstate->node_id) {
+	if (pkt->pkt_id[0] == sharedstate->node_id)
+	{
 		LOG_INFO("shst: rx %d %d\n", sharedstate->node_id, pkt->pkt_id[1]);
 	}
 	if (sharedstate->input_buf_cnt == INPUT_BUF_SIZE)
@@ -242,7 +245,8 @@ void sharedstate_update_cache(sharedstate_t *sharedstate)
 void sharedstate_tx(sharedstate_t *sharedstate)
 {
 	sharedstate_update_cache(sharedstate);
-	if (sharedstate->cache_entries_cnt < OUTPUT_BUF_SIZE) {
+	if (sharedstate->cache_entries_cnt < OUTPUT_BUF_SIZE)
+	{
 		// LOG_INFO("Not enough entries to tx\n");
 		return;
 	}
@@ -301,4 +305,3 @@ void sharedstate_tx(sharedstate_t *sharedstate)
 
 // 	PROCESS_END();
 // }
-
